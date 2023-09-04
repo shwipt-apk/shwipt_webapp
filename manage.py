@@ -16,7 +16,6 @@ creds = credentials.Certificate({
     "auth_provider_x509_cert_url": os.environ.get("auth_provider_x509_cert_url"),
     "client_x509_cert_url": os.environ.get("client_x509_cert_url")
 })
-
 default_app = initialize_app(creds)
 
 def main():
