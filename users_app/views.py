@@ -11,11 +11,9 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = '123456789qwert'
 
 firebase_app = firebase_admin.get_app()
-# You can now use the Firebase Admin app for Firestore or Auth in this Django project
 firestore_db = firestore.client(app=firebase_app)
 
 # Setting up theFirebase Database
-# db = firestore.client()
 user_ref = firestore_db.collection('users')
 
 @csrf_exempt

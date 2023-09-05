@@ -1,4 +1,5 @@
 from flask import Flask
+import firebase_admin
 from firebase_admin import firestore
 from django.http import JsonResponse
 import json
@@ -8,10 +9,11 @@ from django.views.decorators.csrf import csrf_exempt
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '123456789qwert'
 
-# Setting up theFirebase Database
-db = firestore.client()
-user_ref = db.collection('users')
-club_ref = db.collection('clubs')
+# Setting up the Firebase Database
+firebase_app = firebase_admin.get_app()
+firestore_db = firestore.client(app=firebase_app)
+user_ref = firestore_db.collection('users')
+club_ref = firestore_db.collection('clubs')
 
 @csrf_exempt
 def get_user_club(request):

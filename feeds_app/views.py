@@ -1,4 +1,5 @@
 from flask import Flask
+import firebase_admin
 from firebase_admin import firestore
 from django.http import JsonResponse
 import json
@@ -9,13 +10,14 @@ from django.views.decorators.csrf import csrf_exempt
 app = Flask(__name__)
 app.config['SECRET_KEY'] = '123456789qwert'
 
-# Setting up theFirebase Database
-db = firestore.client()
-user_ref = db.collection('users')
-textStory_ref = db.collection('textStories')
-photoStory_ref = db.collection('photoStories')
-feeds_ref = db.collection('feeds')
-club_ref = db.collection('clubs')
+# Setting up the Firebase Database
+firebase_app = firebase_admin.get_app()
+firestore_db = firestore.client(app=firebase_app)
+user_ref = firestore_db.collection('users')
+textStory_ref = firestore_db.collection('textStories')
+photoStory_ref = firestore_db.collection('photoStories')
+feeds_ref = firestore_db.collection('feeds')
+club_ref = firestore_db.collection('clubs')
 
 @csrf_exempt
 def get_text_story(request):
@@ -30,7 +32,7 @@ def get_text_story(request):
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
         
         else:
-          user_ids = [user.id for user in db.collection('users').document(inputID).collection('connections').stream()]
+          user_ids = [user.id for user in firestore_db.collection('users').document(inputID).collection('connections').stream()]
           all_text_stories = [{"id": stories.id, "data": stories.to_dict()} for stories in results if stories.id in user_ids or stories.id == inputID]
           return JsonResponse({'message': 'Success', 'story_data': all_text_stories, 'textStories_count': len(all_text_stories)})
       except Exception as e:
@@ -82,7 +84,7 @@ def get_photo_story(request):
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
         
         else:
-          user_ids = [user.id for user in db.collection('users').document(inputID).collection('connections').stream()]
+          user_ids = [user.id for user in firestore_db.collection('users').document(inputID).collection('connections').stream()]
           all_photo_stories = [{"id": stories.id, "data": stories.to_dict()} for stories in results if stories.id in user_ids or stories.id == inputID]
           return JsonResponse({'message': 'Success', 'story_data': all_photo_stories, 'photoStories_count': len(all_photo_stories)})
       except Exception as e:
@@ -141,7 +143,6 @@ def get_worldwide_post(request):
         username = data.get('username')
         displayPic = data.get('displayPic')
         imageUrl = data.get('imageUrl')
-        postID = data.get('postID')
 
         if not inputID:
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
@@ -152,11 +153,9 @@ def get_worldwide_post(request):
         elif not displayPic:
           return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
         
-        elif not postID:
-          return JsonResponse({'message': 'postID attribute is required'}, status=400)
-        
         else:
-          feeds_ref.document(inputID).set({
+          new_feedCount = len([doc.to_dict() for doc in feeds_ref.get()])
+          feeds_ref.document("Post-"+str(new_feedCount+1)).set({
             "description": description,
             "postTime": firestore.SERVER_TIMESTAMP,
             "uid": inputID,
@@ -166,7 +165,9 @@ def get_worldwide_post(request):
             "comments": 0,
             "imageUrl": imageUrl,
             "private": False,
-            "postID": postID
+            "postID": "Post-"+str(new_feedCount+1),
+            "deleted": False,
+            "archived": False
           })
           return JsonResponse({'status': 'Success', 'message': 'Worldwide Post Created'}, status=200)
       except Exception as e:
@@ -184,7 +185,7 @@ def get_private_post(request):
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
         
         else:
-          user_ids = [user.id for user in db.collection('users').document(inputID).collection('connections').stream()]
+          user_ids = [user.id for user in firestore_db.collection('users').document(inputID).collection('connections').stream()]
           all_posts = [{"id": feed.id, "data": feed.to_dict()} for feed in results if feed.to_dict().get('uid') in user_ids]
           return JsonResponse({'message': 'Success', 'feed_data': all_posts, 'feed_count': len(all_posts)})
       except Exception as e:
@@ -197,8 +198,8 @@ def get_private_post(request):
         description = data.get('description')
         username = data.get('username')
         displayPic = data.get('displayPic')
+        displayName = data.get('displayName')
         imageUrl = data.get('imageUrl')
-        postID = data.get('postID')
 
         if not inputID:
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
@@ -209,21 +210,22 @@ def get_private_post(request):
         elif not displayPic:
           return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
         
-        elif not postID:
-          return JsonResponse({'message': 'postID attribute is required'}, status=400)
-        
         else:
-          feeds_ref.document(inputID).set({
+          new_feedCount = len([doc.to_dict() for doc in feeds_ref.get()])
+          feeds_ref.document("Post-"+str(new_feedCount+1)).set({
             "description": description,
             "postTime": firestore.SERVER_TIMESTAMP,
             "uid": inputID,
             "username": username,
+            "displayName": displayName,
             "displayPic": displayPic,
             "likes": 0,
             "comments": 0,
             "imageUrl": imageUrl,
             "private": True,
-            "postID": postID
+            "postID": "Post-"+str(new_feedCount+1),
+            "deleted": False,
+            "archived": False
           })
           return JsonResponse({'status': 'Success', 'message': 'Private Post Created'}, status=200)
       except Exception as e:
@@ -253,7 +255,7 @@ def get_post_comments(request):
       try:
         data = json.loads(request.body)
         postID = data.get('postID')
-        query = feeds_ref.document(postID).collection('comments').order_by('postTime', direction=firestore.Query.DESCENDING)
+        query = feeds_ref.document(postID).collection('comments').where("deleted", "==", False).order_by('postTime', direction=firestore.Query.DESCENDING)
         results = query.stream()
 
         if not postID:
@@ -288,13 +290,26 @@ def post_feed_likes(request):
           return JsonResponse({'message': 'username attribute is required'}, status=400)
         
         else:
-          feeds_ref.document(postID).collection('likes').set({
-            "postTime": firestore.SERVER_TIMESTAMP,
-            "uid": uid,
-            "username": username,
-            "displayPic": displayPic,
-          })
-          return JsonResponse({'status': 'Success', 'message': 'Post Liked'})
+          likersList = [doc.to_dict() for doc in feeds_ref.document(postID).collection('likes').where("uid", "==", f"{uid}").stream()]
+          if len(likersList) == 0:
+            get_like= feeds_ref.document(postID).get(field_paths={'likes'}).to_dict()
+            current_count =  get_like.get('likes')
+            updated_count = current_count + 1
+            feeds_ref.document(postID).update({'likes': updated_count})
+            feeds_ref.document(postID).collection('likes').document(uid).set({
+              "postTime": firestore.SERVER_TIMESTAMP,
+              "uid": uid,
+              "username": username,
+              "displayPic": displayPic,
+            })
+            return JsonResponse({'status': 'Success', 'message': 'Post Liked'})
+          else:
+            get_like= feeds_ref.document(postID).get(field_paths={'likes'}).to_dict()
+            current_count =  get_like.get('likes')
+            updated_count = current_count - 1
+            feeds_ref.document(postID).update({'likes': updated_count})
+            feeds_ref.document(postID).collection('likes').document(uid).delete()
+            return JsonResponse({'status': 'Success', 'message': 'Post Unliked'})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
@@ -325,15 +340,67 @@ def post_feed_comments(request):
           return JsonResponse({'message': 'comment attribute is required'}, status=400)
         
         else:
-          feeds_ref.document(postID).collection('comments').set({
+          get_comment = feeds_ref.document(postID).get(field_paths={'comments'}).to_dict()
+          current_count =  get_comment.get('comments')
+          updated_count = current_count + 1
+          feeds_ref.document(postID).update({'comments': updated_count})
+          feeds_ref.document(postID).collection('comments').document("Comment-"+str(updated_count)).set({
             "postTime": firestore.SERVER_TIMESTAMP,
             "uid": uid,
             "username": username,
             "displayPic": displayPic,
             "comment": comment,
-            "likes": 0
+            "likes": 0,
+            "deleted": False
           })
           return JsonResponse({'status': 'Success', 'message': 'Post Commented'})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+    
+    if request.method == 'PUT':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        uid = data.get('uid')
+        displayPic = data.get('displayPic')
+        username = data.get('username')
+        comment = data.get('comment')
+        commentID = data.get('commentID')
+
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        elif not uid:
+          return JsonResponse({'message': 'uid attribute is required'}, status=400)
+        
+        elif not displayPic:
+          return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
+        
+        elif not username:
+          return JsonResponse({'message': 'username attribute is required'}, status=400)
+        
+        elif not comment:
+          return JsonResponse({'message': 'comment attribute is required'}, status=400)
+        
+        elif not commentID:
+          return JsonResponse({'message': 'commentID attribute is required'}, status=400)
+        
+        else:
+          get_comment = feeds_ref.document(postID).get(field_paths={'comments'}).to_dict()
+          current_count =  get_comment.get('comments')
+          updated_count = current_count - 1
+          feeds_ref.document(postID).update({'comments': updated_count})
+          # Updating Everything Because In Future We Might Be Showing (Someone Deleted Comment and People Can See If They Have Subscription)
+          feeds_ref.document(postID).collection('comments').document(commentID).update({
+            "postTime": firestore.SERVER_TIMESTAMP,
+            "uid": uid,
+            "username": username,
+            "displayPic": displayPic,
+            "comment": comment,
+            "likes": 0,
+            "deleted": True
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Deleted'})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
 
@@ -369,3 +436,146 @@ def get_user_club_post(request):
       
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
+
+@csrf_exempt       
+def post_feed_report(request):
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        inputID = data.get('inputID')
+        postID = data.get('postID')
+        reason = data.get('reason')
+      
+        if not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+    
+        elif not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        else:
+          feeds_ref.document(postID).collection('reports').document(inputID).set({
+            "reportTime": firestore.SERVER_TIMESTAMP,
+            "uid": inputID,
+            "reason": reason,
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Reported!'}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt       
+def put_delete_feed(request):
+    if request.method == 'PUT':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+    
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        else:
+          feeds_ref.document(postID).update({
+            "deleted": True
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Deleted!'}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt       
+def put_archive_feed(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        inputID = data.get('inputID')
+    
+        if not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+        
+        else:
+          archiveFeeds = [doc.to_dict() for doc in feeds_ref.where("uid", "==", f"{inputID}").where("archived", "==", True).where("deleted", "==", False).stream()]
+          return JsonResponse({'status': 'Success', 'archiveData': archiveFeeds, 'archive_count': len(archiveFeeds)}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+
+    if request.method == 'PUT':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+    
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        else:
+          feeds_ref.document(postID).update({
+            "archived": True
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Archived!'}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt       
+def put_unarchive_feed(request):
+    if request.method == 'PUT':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+    
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        else:
+          feeds_ref.document(postID).update({
+            "archived": False
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Un-Archived!'}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+
+@csrf_exempt       
+def put_like_comment(request):
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        commentID = data.get('commentID')
+        inputID = data.get('inputID')
+        username = data.get('username')
+        displayPic = data.get('displayPic')
+    
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        elif not commentID:
+          return JsonResponse({'message': 'commentID attribute is required'}, status=400)
+        
+        elif not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+        
+        else:
+          likersList = [doc.to_dict() for doc in feeds_ref.document(postID).collection('comments').document(commentID).collection('likes').where("uid", "==", f"{inputID}").stream()]
+          if len(likersList) == 0:
+            get_like= feeds_ref.document(postID).collection('comments').document(commentID).get(field_paths={'likes'}).to_dict()
+            current_count =  get_like.get('likes')
+            updated_count = current_count + 1
+            feeds_ref.document(postID).collection('comments').document(commentID).update({'likes': updated_count})
+            feeds_ref.document(postID).collection('comments').document(commentID).collection('likes').document(inputID).set({
+              "postTime": firestore.SERVER_TIMESTAMP,
+              "uid": inputID,
+              "username": username,
+              "displayPic": displayPic,
+            })
+            return JsonResponse({'status': 'Success', 'message': 'Comment Liked!'}, status=200)
+          else:
+            get_like= feeds_ref.document(postID).collection('comments').document(commentID).get(field_paths={'likes'}).to_dict()
+            current_count =  get_like.get('likes')
+            updated_count = current_count - 1
+            feeds_ref.document(postID).collection('comments').document(commentID).update({'likes': updated_count})
+            feeds_ref.document(postID).collection('comments').document(commentID).collection('likes').document(inputID).delete()
+            return JsonResponse({'status': 'Success', 'message': 'Comment Un-Liked!'}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)    
