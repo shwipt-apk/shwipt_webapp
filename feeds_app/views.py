@@ -18,6 +18,7 @@ textStory_ref = firestore_db.collection('textStories')
 photoStory_ref = firestore_db.collection('photoStories')
 feeds_ref = firestore_db.collection('feeds')
 club_ref = firestore_db.collection('clubs')
+report_ref = firestore_db.collection('reports')
 
 @csrf_exempt
 def get_text_story(request):
@@ -452,12 +453,24 @@ def post_feed_report(request):
         elif not postID:
           return JsonResponse({'message': 'postID attribute is required'}, status=400)
         
+        elif not reason:
+          return JsonResponse({'message': 'reason attribute is required'}, status=400)
+        
         else:
           feeds_ref.document(postID).collection('reports').document(inputID).set({
             "reportTime": firestore.SERVER_TIMESTAMP,
-            "uid": inputID,
+            "reportedBy": inputID,
             "reason": reason,
           })
+
+          report_ref.document().set({
+            "reportTime": firestore.SERVER_TIMESTAMP,
+            "reportedBy": inputID,
+            "reason": reason,
+            "reportingTo": postID,
+            "reportType": "feeds"
+          })
+
           return JsonResponse({'status': 'Success', 'message': 'Post Reported!'}, status=200)
       
       except Exception as e:
@@ -579,3 +592,49 @@ def put_like_comment(request):
       
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)    
+
+@csrf_exempt       
+def post_story_view(request):
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        storyID = data.get('storyID')
+        inputID = data.get('inputID')
+        username = data.get('username')
+        displayPic = data.get('displayPic')
+    
+        if not storyID:
+          return JsonResponse({'message': 'storyID attribute is required'}, status=400)
+        
+        elif not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+        
+        else:
+          photoStory_ref.document(storyID).collection('views').document(inputID).set({
+            "postTime": firestore.SERVER_TIMESTAMP,
+            "uid": inputID,
+            "username": username,
+            "displayPic": displayPic,
+          })
+
+          return JsonResponse({'message': 'Story Seen!', 'status': 'Success'}, status=200)
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        storyID = data.get('storyID')
+        inputID = data.get('inputID')
+    
+        if not storyID:
+          return JsonResponse({'message': 'storyID attribute is required'}, status=400)
+        
+        else:
+          results = photoStory_ref.document(storyID).collection('views').order_by('postTime', direction=firestore.Query.DESCENDING).where("uid", "!=", inputID).stream()
+          all_views = [{"id": views.id, "data": views.to_dict()} for views in results]
+          return JsonResponse({'status': 'Success', 'views_data': all_views, 'views_count': len(all_views)})
+      
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)

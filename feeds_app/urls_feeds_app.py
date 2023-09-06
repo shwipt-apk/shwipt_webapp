@@ -17,4 +17,5 @@ urlpatterns = [
     path('archive_post/', views.put_archive_feed),
     path('unarchive_post/', views.put_archive_feed),
     path('like_comment/', views.put_like_comment),
+    path('story_view/', views.post_story_view),
 ]
