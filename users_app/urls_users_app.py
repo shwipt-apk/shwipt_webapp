@@ -11,7 +11,6 @@ urlpatterns = [
     path('alltime_popular/', views.get_alltime_popular),
     path('weekly_popular/', views.get_weekly_popular),
     path('create_user/', views.post_create_user),
-    path('user_exists/', views.get_user_existence),
     path('user_posts/', views.get_user_post),
     path('sent_requests/', views.post_user_request),
     path('request_accepted/', views.post_request_accept),
@@ -23,4 +22,6 @@ urlpatterns = [
     path('user_unfriend/', views.put_user_unfriend),
     path('user_connections/', views.get_friends),
     path('email_exists/', views.get_email_existence),
+    path('user_exists/', views.get_username_existence),
+    path('phone_exists/', views.get_phone_existence),
 ]

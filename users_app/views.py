@@ -262,16 +262,16 @@ def post_create_user(request):
         return JsonResponse({'message': str(e)}, status=500)
       
 @csrf_exempt
-def get_user_existence(request):
+def get_username_existence(request):
     if request.method == 'GET':
       try:
         data = json.loads(request.body)
-        email = data.get('email')
-        req_user = [doc.to_dict() for doc in user_ref.where("email", "==", f"{email}").stream()]
+        username = data.get('username')
+        req_user = [doc.to_dict() for doc in user_ref.where("username", "==", f"{username}").stream()]
         if len(req_user) > 0:
-          return JsonResponse({'status': 'Success', 'message': 'E-Mail Exists', 'exists': True})
+          return JsonResponse({'status': 'Success', 'message': 'Username Exists', 'exists': True})
         else:
-          return JsonResponse({'status': 'Success', 'message': 'E-Mail Doesn\'t Exists', 'exists': False})
+          return JsonResponse({'status': 'Success', 'message': 'Username Doesn\'t Exists', 'exists': False})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
@@ -280,12 +280,26 @@ def get_email_existence(request):
     if request.method == 'GET':
       try:
         data = json.loads(request.body)
-        phone = data.get('email')
+        email = data.get('email')
+        req_user = [doc.to_dict() for doc in user_ref.where("email", "==", f"{email}").stream()]
+        if len(req_user) > 0:
+          return JsonResponse({'status': 'Success', 'message': 'Email Exists', 'exists': True})
+        else:
+          return JsonResponse({'status': 'Success', 'message': 'Email Doesn\'t Exists', 'exists': False})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_phone_existence(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        phone = data.get('phone')
         req_user = [doc.to_dict() for doc in user_ref.where("phone", "==", f"{phone}").stream()]
         if len(req_user) > 0:
-          return JsonResponse({'status': 'Success', 'message': 'User Exists', 'exists': True})
+          return JsonResponse({'status': 'Success', 'message': 'Email Exists', 'exists': True})
         else:
-          return JsonResponse({'status': 'Success', 'message': 'User Doesn\'t Exists', 'exists': False})
+          return JsonResponse({'status': 'Success', 'message': 'Email Doesn\'t Exists', 'exists': False})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
