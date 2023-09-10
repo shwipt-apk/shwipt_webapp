@@ -22,6 +22,6 @@ urlpatterns = [
     path('user_unfriend/', views.put_user_unfriend),
     path('user_connections/', views.get_friends),
     path('email_exists/', views.get_email_existence),
-    path('user_exists/', views.get_username_existence),
+    path('username_exists/', views.get_username_existence),
     path('phone_exists/', views.get_phone_existence),
 ]
