@@ -297,9 +297,9 @@ def get_phone_existence(request):
         phone = data.get('phone')
         req_user = [doc.to_dict() for doc in user_ref.where("phone", "==", f"{phone}").stream()]
         if len(req_user) > 0:
-          return JsonResponse({'status': 'Success', 'message': 'Email Exists', 'exists': True})
+          return JsonResponse({'status': 'Success', 'message': 'Phone Exists', 'exists': True})
         else:
-          return JsonResponse({'status': 'Success', 'message': 'Email Doesn\'t Exists', 'exists': False})
+          return JsonResponse({'status': 'Success', 'message': 'Phone Doesn\'t Exists', 'exists': False})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
