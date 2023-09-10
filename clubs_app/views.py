@@ -91,20 +91,46 @@ def post_join_club(request):
         data = json.loads(request.body)
         inputID = data.get('inputID')
         role = data.get('role')
-        memberTime = data.get('memberTime')
         clubID = data.get('clubID')
 
         if not inputID:
           return JsonResponse({'status': 'Failed', 'message': 'inputID attribute is required'}, status=400)
         
         if not role:
-          return JsonResponse({'status': 'Failed', 'message': 'role attribute is required'}, status=400)
-        
-        if not memberTime:
-          return JsonResponse({'status': 'Failed', 'message': 'memberTime attribute is required'}, status=400)
+          return JsonResponse({'status': 'Failed', 'message': 'role attribute is required'}, status=400)        
         
         if not clubID:
           return JsonResponse({'status': 'Failed', 'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          newMemberCount = len([doc.to_dict() for doc in club_ref.document(clubID).collection('members').get()])
+          updated_count = newMemberCount + 1
+
+          post_club_data = {"uid": inputID, "role": role, "memberTime": firestore.SERVER_TIMESTAMP}
+          post_user_data = {"clubID": clubID, "joinedTime": firestore.SERVER_TIMESTAMP}
+          club_ref.document(clubID).update({'members': updated_count})
+          club_ref.document(clubID).collection('members').document(inputID).set(post_club_data)
+          user_ref.document(inputID).collection('joinedClubs').document(clubID).set(post_user_data)
+          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+        
+@csrf_exempt
+def post_create_club(request):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        inputID = data.get('inputID')
+        clubName = data.get('clubName')
+        description = data.get('description')
+
+        if not inputID:
+          return JsonResponse({'status': 'Failed', 'message': 'inputID attribute is required'}, status=400)
+        
+        if not clubName:
+          return JsonResponse({'status': 'Failed', 'message': 'clubID attribute is required'}, status=400)
+        
+        if not description:
+          return JsonResponse({'status': 'Failed', 'message': 'description attribute is required'}, status=400)
         
         else:
           post_club_data = {"uid": inputID, "role": role, "memberTime": memberTime}
@@ -112,33 +138,3 @@ def post_join_club(request):
           club_ref.document(clubID).collection('members').document(inputID).set(post_club_data)
           user_ref.document(inputID).collection('joinedClubs').document(clubID).set(post_user_data)
           return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
-      except Exception as e:
-        return JsonResponse({'message': str(e)}, status=500)
-        
-# @csrf_exempt
-# def post_create_club(request):
-#     if request.method == 'POST':
-#         data = json.loads(request.body)
-#         inputID = data.get('inputID')
-#         role = data.get('role')
-#         memberTime = data.get('memberTime')
-#         clubName = data.get('clubName')
-
-#         if not inputID:
-#           return JsonResponse({'status': 'Failed', 'message': 'inputID attribute is required'}, status=400)
-        
-#         if not role:
-#           return JsonResponse({'status': 'Failed', 'message': 'role attribute is required'}, status=400)
-        
-#         if not memberTime:
-#           return JsonResponse({'status': 'Failed', 'message': 'memberTime attribute is required'}, status=400)
-        
-#         if not clubID:
-#           return JsonResponse({'status': 'Failed', 'message': 'clubID attribute is required'}, status=400)
-        
-#         else:
-#           post_club_data = {"uid": inputID, "role": role, "memberTime": memberTime}
-#           post_user_data = {"clubID": clubID, "joinedTime": memberTime}
-#           club_ref.document(clubID).collection('members').document(inputID).set(post_club_data)
-#           user_ref.document(inputID).collection('joinedClubs').document(clubID).set(post_user_data)
-#           return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)

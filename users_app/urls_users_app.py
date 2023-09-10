@@ -20,5 +20,7 @@ urlpatterns = [
     path('user_connection/', views.get_user_connection),
     path('user_report/', views.post_user_report),
     path('user_block/', views.post_user_block),
+    path('user_unfriend/', views.put_user_unfriend),
     path('user_connections/', views.get_friends),
+    path('email_exists/', views.get_email_existence),
 ]

@@ -254,8 +254,10 @@ def post_create_user(request):
       try:
         data = json.loads(request.body)
         uid = data.get('uid')
-        user_ref.document(uid).set(data)
-        return JsonResponse({'status': 'Success', 'message': 'User Created Successfully'})
+        data['lastActive'] = firestore.SERVER_TIMESTAMP
+
+        # user_ref.document(uid).set(data)
+        return JsonResponse({'status': 'Success', 'message': 'User Created Successfully', 'new': data})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
@@ -264,7 +266,21 @@ def get_user_existence(request):
     if request.method == 'GET':
       try:
         data = json.loads(request.body)
-        phone = data.get('phone')
+        email = data.get('email')
+        req_user = [doc.to_dict() for doc in user_ref.where("email", "==", f"{email}").stream()]
+        if len(req_user) > 0:
+          return JsonResponse({'status': 'Success', 'message': 'E-Mail Exists', 'exists': True})
+        else:
+          return JsonResponse({'status': 'Success', 'message': 'E-Mail Doesn\'t Exists', 'exists': False})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_email_existence(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        phone = data.get('email')
         req_user = [doc.to_dict() for doc in user_ref.where("phone", "==", f"{phone}").stream()]
         if len(req_user) > 0:
           return JsonResponse({'status': 'Success', 'message': 'User Exists', 'exists': True})
@@ -488,6 +504,29 @@ def put_cancel_request(request):
           user_ref.document(receiverID).collection('requests').doc(senderID).delete()
           user_ref.document(senderID).collection('sentRequests').doc(receiverID).delete()
           return JsonResponse({'status': 'Success', 'message': 'Request Canceled!'})
+        
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+
+@csrf_exempt
+def put_user_unfriend(request):
+    if request.method == 'PUT':
+      try:
+        data = json.loads(request.body)
+        senderID = data.get('senderID')
+        receiverID = data.get('receiverID')
+
+        if not senderID:
+          return JsonResponse({'message': 'senderID attribute is required'}, status=400)
+        
+        elif not receiverID:
+          return JsonResponse({'message': 'receiverID attribute is required'}, status=400)
+        
+        else:
+          user_ref.document(receiverID).collection('connections').doc(senderID).delete()
+          user_ref.document(senderID).collection('connections').doc(receiverID).delete()
+
+          return JsonResponse({'status': 'Success', 'message': 'Request Rejected!'})
         
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
