@@ -254,9 +254,9 @@ def post_create_user(request):
       try:
         data = json.loads(request.body)
         uid = data.get('uid')
-        data['lastActive'] = firestore.SERVER_TIMESTAMP
+        # data['lastActive'] = firestore.SERVER_TIMESTAMP
 
-        # user_ref.document(uid).set(data)
+        user_ref.document(uid).set(data)
         return JsonResponse({'status': 'Success', 'message': 'User Created Successfully', 'new': data})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
