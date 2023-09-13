@@ -79,7 +79,7 @@ def get_weekly_popular(request):
         inputID = data.get('inputID')
         gender = data.get('gender')
         country = data.get('country')
-        query = user_ref.order_by('weekly_popularity', direction=firestore.Query.DESCENDING)
+        query = user_ref.order_by('weeklyPopularity', direction=firestore.Query.DESCENDING)
         results = query.stream()
 
         if not inputID:
