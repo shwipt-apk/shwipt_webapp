@@ -174,3 +174,33 @@ def post_create_club(request):
              "interests": interests
           })
           return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
+        
+@csrf_exempt
+def get_club_post(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        clubID = data.get('clubID')
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          clubs = [doc.to_dict() for doc in club_ref.document(clubID).collection('posts').order_by('postTime', direction=firestore.Query.DESCENDING).stream()]
+          return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_club_members(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        clubID = data.get('clubID')
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          clubs = [doc.to_dict() for doc in club_ref.document(clubID).collection('members').order_by('role', direction=firestore.Query.DESCENDING).stream()]
+          return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)

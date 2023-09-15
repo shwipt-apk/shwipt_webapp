@@ -416,6 +416,8 @@ def get_user_club_post(request):
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
     
         req_doc = user_ref.document(f"{inputID}")
+        joined_clubs_list = []
+        myclubs_list = []
 
         if req_doc.collection('joinedClubs'):
           joined_clubs_list = [doc.to_dict()["clubID"] for doc in req_doc.collection('joinedClubs').get()]
@@ -424,14 +426,14 @@ def get_user_club_post(request):
           myclubs_list = [doc.to_dict()["clubID"] for doc in req_doc.collection('myClubs').get()]
     
         check_lst = set(joined_clubs_list + myclubs_list)
+        print(check_lst)
         final_lst = []
         
         for _ in check_lst:
           new_doc = club_ref.document(f"{_}")
           post_lst = [doc.to_dict() for doc in new_doc.collection('posts').get()]
-        
-        for _ in post_lst:
-            final_lst.append({"id": _["postID"], "data": _})
+          for post in post_lst:
+            final_lst.append({"id": post["postID"], "data": post})
 
         return JsonResponse({'status': 'Success', 'clubPost_data': final_lst, 'clubPost_count': len(final_lst)}, status=200)
       
