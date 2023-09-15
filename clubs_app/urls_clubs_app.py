@@ -7,4 +7,5 @@ urlpatterns = [
     path('joined_clubs/', views.get_joined_club),
     path('explore_clubs/', views.get_explore_club),
     path('join_clubs/', views.post_join_club),
+    path('create_clubs/', views.post_create_club),
 ]

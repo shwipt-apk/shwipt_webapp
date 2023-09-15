@@ -42,7 +42,17 @@ def get_joined_club(request):
         else:
           req_doc = user_ref.document(f"{inputID}")
           joined_clubs_list = [doc.to_dict() for doc in req_doc.collection('joinedClubs').stream()]
-          return JsonResponse({'status': 'Success', 'data': joined_clubs_list, 'clubs_count': len(joined_clubs_list)}, status=200)
+          club_data_list = []
+
+          for club_info in joined_clubs_list:
+            club_id = club_info["clubID"]
+            club_doc_ref = club_ref.document(club_id)
+            club_data = club_doc_ref.get().to_dict()
+    
+            if club_data:
+              club_data_list.append(club_data)
+             
+          return JsonResponse({'status': 'Success', 'data': club_data_list, 'clubs_count': len(joined_clubs_list)}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
         
@@ -90,27 +100,29 @@ def post_join_club(request):
       try:
         data = json.loads(request.body)
         inputID = data.get('inputID')
-        role = data.get('role')
         clubID = data.get('clubID')
+        ownerID = data.get('ownerID')
 
         if not inputID:
           return JsonResponse({'status': 'Failed', 'message': 'inputID attribute is required'}, status=400)
-        
-        if not role:
-          return JsonResponse({'status': 'Failed', 'message': 'role attribute is required'}, status=400)        
+      
         
         if not clubID:
           return JsonResponse({'status': 'Failed', 'message': 'clubID attribute is required'}, status=400)
+        
+        if not ownerID:
+          return JsonResponse({'status': 'Failed', 'message': 'ownerID attribute is required'}, status=400)
         
         else:
           newMemberCount = len([doc.to_dict() for doc in club_ref.document(clubID).collection('members').get()])
           updated_count = newMemberCount + 1
 
-          post_club_data = {"uid": inputID, "role": role, "memberTime": firestore.SERVER_TIMESTAMP}
+          post_club_data = {"uid": inputID, "role": "audience", "memberTime": firestore.SERVER_TIMESTAMP}
           post_user_data = {"clubID": clubID, "joinedTime": firestore.SERVER_TIMESTAMP}
           club_ref.document(clubID).update({'members': updated_count})
           club_ref.document(clubID).collection('members').document(inputID).set(post_club_data)
           user_ref.document(inputID).collection('joinedClubs').document(clubID).set(post_user_data)
+          user_ref.document(ownerID).collection('myClubs').document(clubID).update({'members': updated_count})
           return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
@@ -122,6 +134,9 @@ def post_create_club(request):
         inputID = data.get('inputID')
         clubName = data.get('clubName')
         description = data.get('description')
+        imageUrl = data.get('imageUrl')
+        isPrivate = data.get('isPrivate')
+        interests = data.get('interests')
 
         if not inputID:
           return JsonResponse({'status': 'Failed', 'message': 'inputID attribute is required'}, status=400)
@@ -133,8 +148,29 @@ def post_create_club(request):
           return JsonResponse({'status': 'Failed', 'message': 'description attribute is required'}, status=400)
         
         else:
-          post_club_data = {"uid": inputID, "role": role, "memberTime": memberTime}
-          post_user_data = {"clubID": clubID, "joinedTime": memberTime}
-          club_ref.document(clubID).collection('members').document(inputID).set(post_club_data)
-          user_ref.document(inputID).collection('joinedClubs').document(clubID).set(post_user_data)
+          new_ClubCount = len([doc.to_dict() for doc in club_ref.get()])
+          club_ref.document('Club-'+str(new_ClubCount+1)).set({
+             "clubID": 'Club-'+str(new_ClubCount+1),
+             "clubName": clubName,
+             "description": description,
+             "createTime": firestore.SERVER_TIMESTAMP,
+             "imageUrl": imageUrl,
+             "members": 1,
+             "ownerID": inputID,
+             "private": isPrivate,
+             "interests": interests
+          })
+          post_club_data = {"uid": inputID, "role": "owner", "memberTime": firestore.SERVER_TIMESTAMP}
+          club_ref.document('Club-'+str(new_ClubCount+1)).collection('members').document(inputID).set(post_club_data)
+          user_ref.document(inputID).collection('myClubs').document('Club-'+str(new_ClubCount+1)).set({
+             "clubID": 'Club-'+str(new_ClubCount+1),
+             "clubName": clubName,
+             "description": description,
+             "createTime": firestore.SERVER_TIMESTAMP,
+             "imageUrl": imageUrl,
+             "members": 1,
+             "ownerID": inputID,
+             "private": isPrivate,
+             "interests": interests
+          })
           return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
