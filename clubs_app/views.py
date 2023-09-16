@@ -232,6 +232,6 @@ def get_club_interests(request):
           interest_ref.document().set({
              "interest": interest
           })
-          return JsonResponse({'status': 'Success', 'data': interests, 'interests_count': len(interests)}, status=200)
+          return JsonResponse({'status': 'Success', 'message': 'Interest Added!'}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
