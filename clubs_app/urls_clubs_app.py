@@ -10,4 +10,5 @@ urlpatterns = [
     path('create_clubs/', views.post_create_club),
     path('club_posts/', views.get_club_post),
     path('club_members/', views.get_club_members),
+    path('club_interests/', views.get_club_interests),
 ]

@@ -14,6 +14,7 @@ firebase_app = firebase_admin.get_app()
 firestore_db = firestore.client(app=firebase_app)
 user_ref = firestore_db.collection('users')
 club_ref = firestore_db.collection('clubs')
+interest_ref = firestore_db.collection('interests')
 
 @csrf_exempt
 def get_user_club(request):
@@ -202,5 +203,35 @@ def get_club_members(request):
         else:
           clubs = [doc.to_dict() for doc in club_ref.document(clubID).collection('members').order_by('role', direction=firestore.Query.DESCENDING).stream()]
           return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_club_interests(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        inputID = data.get('inputID')
+        if not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+        
+        else:
+          interests = [doc.to_dict() for doc in interest_ref.order_by('interest', direction=firestore.Query.ASCENDING).stream()]
+          return JsonResponse({'status': 'Success', 'data': interests, 'interests_count': len(interests)}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        interest = data.get('interest')
+        if not interest:
+          return JsonResponse({'message': 'interest attribute is required'}, status=400)
+        
+        else:
+          interest_ref.document().set({
+             "interest": interest
+          })
+          return JsonResponse({'status': 'Success', 'data': interests, 'interests_count': len(interests)}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
