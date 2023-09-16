@@ -149,7 +149,6 @@ def post_create_club(request):
           return JsonResponse({'status': 'Failed', 'message': 'description attribute is required'}, status=400)
         
         else:
-          clubID = 'Club-'+str(new_ClubCount+1)
           new_ClubCount = len([doc.to_dict() for doc in club_ref.get()])
           club_ref.document('Club-'+str(new_ClubCount+1)).set({
              "clubID": 'Club-'+str(new_ClubCount+1),
@@ -175,7 +174,7 @@ def post_create_club(request):
              "private": isPrivate,
              "interests": interests
           })
-          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully', 'clubID': clubID, 'createTime': firestore.SERVER_TIMESTAMP,}, status=200)
+          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully', 'clubID': 'Club-'+str(new_ClubCount+1), 'createTime': firestore.SERVER_TIMESTAMP}, status=200)
         
 @csrf_exempt
 def get_club_post(request):
