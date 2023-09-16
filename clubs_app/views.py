@@ -201,8 +201,18 @@ def get_club_members(request):
           return JsonResponse({'message': 'clubID attribute is required'}, status=400)
         
         else:
-          clubs = [doc.to_dict() for doc in club_ref.document(clubID).collection('members').order_by('role', direction=firestore.Query.DESCENDING).stream()]
-          return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
+          members = [doc.to_dict() for doc in club_ref.document(clubID).collection('members').order_by('role', direction=firestore.Query.DESCENDING).stream()]
+          member_data_list = []
+
+          for club_info in members:
+            memberID = club_info["uid"]
+            member_doc_ref = user_ref.document(memberID)
+            member_data = member_doc_ref.get().to_dict()
+    
+            if member_data:
+              member_data_list.append(member_data)
+
+          return JsonResponse({'status': 'Success', 'data': member_data_list, 'members_count': len(member_data_list)}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
