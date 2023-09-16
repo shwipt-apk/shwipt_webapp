@@ -174,7 +174,7 @@ def post_create_club(request):
              "private": isPrivate,
              "interests": interests
           })
-          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully', 'clubID': 'Club-'+str(new_ClubCount+1), 'createTime': firestore.SERVER_TIMESTAMP}, status=200)
+          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
         
 @csrf_exempt
 def get_club_post(request):
