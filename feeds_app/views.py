@@ -91,7 +91,7 @@ def get_photo_story(request):
             user_list = []
             for feed in results:
               user_list.append({"id": feed.id, "data": feed.to_dict()})
-            if not user_list:
+            if len(user_list) > 0:
               final_list.append({"userID": user, "user_story": user_list})
           return JsonResponse({'message': 'Success', 'story_data': final_list, 'photoStories_count': len(final_list)})
       except Exception as e:
