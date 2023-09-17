@@ -92,8 +92,7 @@ def get_photo_story(request):
             user_list = []
             for feed in results:
               feed_data = feed.to_dict()
-              post_time_str = feed_data.get('postTime')
-              post_time = datetime.strptime(post_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")  # Parse the timestamp format
+              post_time = feed_data.get('postTime')
               time_difference = current_time - post_time
               if time_difference < timedelta(hours=24):
                 user_list.append({"id": feed.id, "data": feed_data})
