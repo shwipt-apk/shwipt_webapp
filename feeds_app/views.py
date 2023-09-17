@@ -88,8 +88,10 @@ def get_photo_story(request):
           user_ids.append(inputID)
           for user in user_ids:
             results = user_ref.document(user).collection('photoStories').stream()
+            user_list = []
             for feed in results:
-              final_list.append({"id": feed.id, "data": feed.to_dict()})
+              user_list.append({"id": feed.id, "data": feed.to_dict()})
+            final_list.append({"userID": user, "user_story": user_list})
             # all_photo_stories = [{"id": stories.id, "data": stories.to_dict()} for stories in results if stories.id in user_ids or stories.id == inputID]
           return JsonResponse({'message': 'Success', 'story_data': final_list, 'photoStories_count': len(final_list)})
       except Exception as e:
