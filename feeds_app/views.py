@@ -3,7 +3,7 @@ import firebase_admin
 from firebase_admin import firestore
 from django.http import JsonResponse
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from django.views.decorators.csrf import csrf_exempt
 
 # Setting up the flask app
@@ -86,7 +86,7 @@ def get_photo_story(request):
           final_list = []
           user_ids = [user.id for user in user_ref.document(inputID).collection('connections').stream()]
           user_ids.append(inputID)
-          current_time = datetime.now()
+          current_time = datetime.now(timezone.utc)
           for user in user_ids:
             results = user_ref.document(user).collection('photoStories').stream()
             user_list = []
