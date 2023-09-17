@@ -78,16 +78,20 @@ def get_photo_story(request):
       try:
         data = json.loads(request.body)
         inputID = data.get('inputID')
-        query = photoStory_ref.order_by('postTime', direction=firestore.Query.DESCENDING)
-        results = query.stream()
 
         if not inputID:
           return JsonResponse({'message': 'inputID attribute is required'}, status=400)
         
         else:
-          user_ids = [user.id for user in firestore_db.collection('users').document(inputID).collection('connections').stream()]
-          all_photo_stories = [{"id": stories.id, "data": stories.to_dict()} for stories in results if stories.id in user_ids or stories.id == inputID]
-          return JsonResponse({'message': 'Success', 'story_data': all_photo_stories, 'photoStories_count': len(all_photo_stories)})
+          final_list = []
+          user_ids = [user.id for user in user_ref.document(inputID).collection('connections').stream()]
+          user_ids.append(inputID)
+          for user in user_ids:
+            results = user_ref.document(user).collection('photoStories').stream()
+            for feed in results:
+              final_list.append({"id": feed.id, "data": feed.to_dict()})
+            # all_photo_stories = [{"id": stories.id, "data": stories.to_dict()} for stories in results if stories.id in user_ids or stories.id == inputID]
+          return JsonResponse({'message': 'Success', 'story_data': final_list, 'photoStories_count': len(final_list)})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
     
@@ -113,7 +117,16 @@ def get_photo_story(request):
           return JsonResponse({'message': 'imageUrl attribute is required'}, status=400)
         
         else:
-          photoStory_ref.document(inputID).set({
+          # photoStory_ref.document().set({
+          #   "description": description,
+          #   "postTime": firestore.SERVER_TIMESTAMP,
+          #   "uid": inputID,
+          #   "username": username,
+          #   "displayPic": displayPic,
+          #   "likes": 0,
+          #   "imageUrl": imageUrl
+          # })
+          user_ref.document(inputID).collection('photoStories').document().set({
             "description": description,
             "postTime": firestore.SERVER_TIMESTAMP,
             "uid": inputID,
