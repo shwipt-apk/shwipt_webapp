@@ -3,7 +3,7 @@ import firebase_admin
 from firebase_admin import firestore
 from django.http import JsonResponse
 import json
-import datetime
+from datetime import datetime, timedelta
 from django.views.decorators.csrf import csrf_exempt
 
 # Setting up the flask app
@@ -86,13 +86,19 @@ def get_photo_story(request):
           final_list = []
           user_ids = [user.id for user in user_ref.document(inputID).collection('connections').stream()]
           user_ids.append(inputID)
+          current_time = datetime.now()
           for user in user_ids:
             results = user_ref.document(user).collection('photoStories').stream()
             user_list = []
             for feed in results:
-              user_list.append({"id": feed.id, "data": feed.to_dict()})
+              feed_data = feed.to_dict()
+              post_time_str = feed_data.get('postTime')
+              post_time = datetime.strptime(post_time_str, "%Y-%m-%dT%H:%M:%S.%fZ")  # Parse the timestamp format
+              time_difference = current_time - post_time
+              if time_difference < timedelta(hours=24):
+                user_list.append({"id": feed.id, "data": feed_data})
             if len(user_list) > 0:
-              final_list.append({"userID": user, "user_story": user_list})
+              final_list.append({"userID": user, "user_story": user_list, "story_count": len(user_list)})
           return JsonResponse({'message': 'Success', 'story_data': final_list, 'photoStories_count': len(final_list)})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
