@@ -12,4 +12,5 @@ urlpatterns = [
     path('club_members/', views.get_club_members),
     path('club_interests/', views.get_club_interests),
     path('message_reacts/', views.get_message_reacts),
+    path('react_exists/', views.get_react_exists)
 ]

@@ -310,3 +310,31 @@ def get_message_reacts(request):
         
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_react_exists(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        messageID = data.get('messageID')
+        clubID = data.get('clubID')
+        inputID = data.get('inputID')
+
+        if not messageID:
+          return JsonResponse({'message': 'messageID attribute is required'}, status=400)
+        
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        if not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+        
+        else:
+          reacts = [doc.to_dict() for doc in club_ref.document(clubID).collection('reactions').document(messageID).collection('message_reactions').where("inputID", "==", f"{inputID}").stream()]
+          if len(reacts) > 0:
+            return JsonResponse({'status': 'Success', 'message': 'React Exists', 'exists': True}, status=200)
+          else:
+            return JsonResponse({'status': 'Success', 'message': 'React Doesn\'t Exists', 'exists': False}, status=200)
+        
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
