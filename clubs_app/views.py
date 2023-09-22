@@ -245,3 +245,68 @@ def get_club_interests(request):
           return JsonResponse({'status': 'Success', 'message': 'Interest Added!'}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
+      
+
+@csrf_exempt
+def get_message_reacts(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        messageID = data.get('messageID')
+        clubID = data.get('clubID')
+
+        if not messageID:
+          return JsonResponse({'message': 'messageID attribute is required'}, status=400)
+        
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          reacts = [doc.to_dict() for doc in club_ref.document(clubID).collection('reactions').document(messageID).collection('message_reactions').order_by('reactTime', direction=firestore.Query.ASCENDING).stream()]
+          return JsonResponse({'status': 'Success', 'data': reacts, 'interests_count': len(reacts)}, status=200)
+        
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        messageID = data.get('messageID')
+        clubID = data.get('clubID')
+        reaction = data.get('reaction')
+        username = data.get('username')
+        displayPic = data.get('displayPic')
+        inputID = data.get('inputID')
+
+        if not messageID:
+          return JsonResponse({'message': 'messageID attribute is required'}, status=400)
+        
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        if not reaction:
+          return JsonResponse({'message': 'reaction attribute is required'}, status=400)
+        
+        if not username:
+          return JsonResponse({'message': 'username attribute is required'}, status=400)
+        
+        if not displayPic:
+          return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
+        
+        if not inputID:
+          return JsonResponse({'message': 'inputID attribute is required'}, status=400)
+        
+        else:
+          club_ref.document(clubID).collection('reactions').document(messageID).collection('message_reactions').document().set({
+             "inputID": inputID,
+             "clubID": clubID,
+             "reaction": reaction,
+             "username": username,
+             "displayPic": displayPic,
+             "messageID": messageID,
+             "reactTime": firestore.SERVER_TIMESTAMP
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Reaction Added!'}, status=200)
+        
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
