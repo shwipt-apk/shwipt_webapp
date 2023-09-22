@@ -190,7 +190,42 @@ def get_club_post(request):
           return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
-      
+    
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        clubID = data.get('clubID')
+        inputID = data.get('inputID')
+        username = data.get('username')
+        displayPic = data.get('displayPic')
+        clubName = data.get('clubName')
+        clubPic = data.get('clubPic')
+        description = data.get('description')
+        imageUrl = data.get('imageUrl')
+
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          new_feedCount = len([doc.to_dict() for doc in club_ref.document(clubID).collection('posts').get()])
+          club_ref.document(clubID).collection('posts').document("Post-"+str(new_feedCount+1)).set({
+            "description": description,
+            "postTime": firestore.SERVER_TIMESTAMP,
+            "uid": inputID,
+            "username": username,
+            "displayPic": displayPic,
+            "likes": 0,
+            "comments": 0,
+            "imageUrl": imageUrl,
+            "postID": "Post-"+str(new_feedCount+1),
+            "deleted": False,
+            "clubName": clubName,
+            "clubPic": clubPic
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Added Successfully!'}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+
 @csrf_exempt
 def get_club_members(request):
     if request.method == 'GET':
@@ -246,7 +281,6 @@ def get_club_interests(request):
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
       
-
 @csrf_exempt
 def get_message_reacts(request):
     if request.method == 'GET':
@@ -336,5 +370,189 @@ def get_react_exists(request):
           else:
             return JsonResponse({'status': 'Success', 'message': 'React Doesn\'t Exists', 'exists': False}, status=200)
         
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_post_likes(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        clubID = data.get('clubID')
+
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          query = club_ref.document(clubID).collection('posts').document(postID).collection('likes').order_by('postTime', direction=firestore.Query.DESCENDING)
+          results = query.stream()
+          all_likes = [{"id": likes.id, "data": likes.to_dict()} for likes in results]
+          return JsonResponse({'message': 'Success', 'likes_data': all_likes, 'likes_count': len(all_likes)})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def get_post_comments(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        clubID = data.get('clubID')
+
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          query = club_ref.document(clubID).collection('posts').document(postID).collection('comments').where("deleted", "==", False).order_by('postTime', direction=firestore.Query.DESCENDING)
+          results = query.stream()
+          all_comments = [{"id": comments.id, "data": comments.to_dict()} for comments in results]
+          return JsonResponse({'message': 'Success', 'comments_data': all_comments, 'comments_count': len(all_comments)})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def post_feed_likes(request):
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        clubID = data.get('clubID')
+        uid = data.get('uid')
+        displayPic = data.get('displayPic')
+        username = data.get('username')
+
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        elif not uid:
+          return JsonResponse({'message': 'uid attribute is required'}, status=400)
+        
+        elif not displayPic:
+          return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
+        
+        elif not username:
+          return JsonResponse({'message': 'username attribute is required'}, status=400)
+        
+        else:
+          likersList = [doc.to_dict() for doc in club_ref.document(clubID).collection('posts').document(postID).collection('likes').where("uid", "==", f"{uid}").stream()]
+          if len(likersList) == 0:
+            get_like= club_ref.document(clubID).collection('posts').document(postID).get(field_paths={'likes'}).to_dict()
+            current_count =  get_like.get('likes')
+            updated_count = current_count + 1
+            club_ref.document(clubID).collection('posts').document(postID).update({'likes': updated_count})
+            club_ref.document(clubID).collection('posts').document(postID).collection('likes').document(uid).set({
+              "postTime": firestore.SERVER_TIMESTAMP,
+              "uid": uid,
+              "username": username,
+              "displayPic": displayPic,
+            })
+            return JsonResponse({'status': 'Success', 'message': 'Post Liked'})
+          else:
+            get_like= club_ref.document(clubID).collection('posts').document(postID).get(field_paths={'likes'}).to_dict()
+            current_count =  get_like.get('likes')
+            updated_count = current_count - 1
+            club_ref.document(clubID).collection('posts').document(postID).update({'likes': updated_count})
+            club_ref.document(clubID).collection('posts').document(postID).collection('likes').document(uid).delete()
+            return JsonResponse({'status': 'Success', 'message': 'Post Unliked'})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def post_feed_comments(request):
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        clubID = data.get('clubID')
+        uid = data.get('uid')
+        displayPic = data.get('displayPic')
+        username = data.get('username')
+        comment = data.get('comment')
+
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        elif not uid:
+          return JsonResponse({'message': 'uid attribute is required'}, status=400)
+        
+        elif not displayPic:
+          return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
+        
+        elif not username:
+          return JsonResponse({'message': 'username attribute is required'}, status=400)
+        
+        elif not comment:
+          return JsonResponse({'message': 'comment attribute is required'}, status=400)
+        
+        else:
+          get_comment = club_ref.document(clubID).collection('posts').document(postID).get(field_paths={'comments'}).to_dict()
+          current_count =  get_comment.get('comments')
+          updated_count = current_count + 1
+          club_ref.document(clubID).collection('posts').document(postID).update({'comments': updated_count})
+          club_ref.document(clubID).collection('posts').document(postID).collection('comments').document("Comment-"+str(updated_count)).set({
+            "postTime": firestore.SERVER_TIMESTAMP,
+            "uid": uid,
+            "username": username,
+            "displayPic": displayPic,
+            "comment": comment,
+            "likes": 0,
+            "deleted": False
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Commented'})
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+    
+    if request.method == 'PUT':
+      try:
+        data = json.loads(request.body)
+        postID = data.get('postID')
+        uid = data.get('uid')
+        displayPic = data.get('displayPic')
+        username = data.get('username')
+        comment = data.get('comment')
+        commentID = data.get('commentID')
+        clubID = data.get('clubID')
+
+        if not postID:
+          return JsonResponse({'message': 'postID attribute is required'}, status=400)
+        
+        elif not uid:
+          return JsonResponse({'message': 'uid attribute is required'}, status=400)
+        
+        elif not displayPic:
+          return JsonResponse({'message': 'displayPic attribute is required'}, status=400)
+        
+        elif not username:
+          return JsonResponse({'message': 'username attribute is required'}, status=400)
+        
+        elif not comment:
+          return JsonResponse({'message': 'comment attribute is required'}, status=400)
+        
+        elif not commentID:
+          return JsonResponse({'message': 'commentID attribute is required'}, status=400)
+        
+        else:
+          get_comment = club_ref.document(clubID).collection('posts').document(postID).get(field_paths={'comments'}).to_dict()
+          current_count =  get_comment.get('comments')
+          updated_count = current_count - 1
+          club_ref.document(clubID).collection('posts').document(postID).update({'comments': updated_count})
+          # Updating Everything Because In Future We Might Be Showing (Someone Deleted Comment and People Can See If They Have Subscription)
+          club_ref.document(clubID).collection('posts').document(postID).collection('comments').document(commentID).update({
+            "postTime": firestore.SERVER_TIMESTAMP,
+            "uid": uid,
+            "username": username,
+            "displayPic": displayPic,
+            "comment": comment,
+            "likes": 0,
+            "deleted": True
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Post Deleted'})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
