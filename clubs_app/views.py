@@ -220,7 +220,8 @@ def get_club_post(request):
             "postID": "Post-"+str(new_feedCount+1),
             "deleted": False,
             "clubName": clubName,
-            "clubPic": clubPic
+            "clubPic": clubPic,
+            "clubID": clubID
           })
           return JsonResponse({'status': 'Success', 'message': 'Post Added Successfully!'}, status=200)
       except Exception as e:
