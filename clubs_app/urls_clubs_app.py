@@ -16,5 +16,6 @@ urlpatterns = [
     path('like_post/', views.get_post_likes),
     path('post_comment/', views.get_post_comments),
     path('like_list/', views.post_feed_likes),
-    path('comment_list/', views.post_feed_comments)
+    path('comment_list/', views.post_feed_comments),
+    path('edit_club/', views.put_edit_club)
 ]

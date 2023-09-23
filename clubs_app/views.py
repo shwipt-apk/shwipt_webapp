@@ -557,3 +557,44 @@ def post_feed_comments(request):
           return JsonResponse({'status': 'Success', 'message': 'Post Deleted'})
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def put_edit_club(request):
+    if request.method == 'PUT':
+        data = json.loads(request.body)
+        inputID = data.get('inputID')
+        clubID = data.get('clubID')
+        clubName = data.get('clubName')
+        description = data.get('description')
+        imageUrl = data.get('imageUrl')
+
+        if not inputID:
+          return JsonResponse({'status': 'Failed', 'message': 'inputID attribute is required'}, status=400)
+
+        if not clubID:
+          return JsonResponse({'status': 'Failed', 'message': 'clubID attribute is required'}, status=400)
+        
+        if not clubName:
+          return JsonResponse({'status': 'Failed', 'message': 'clubName attribute is required'}, status=400)
+        
+        if not description:
+          return JsonResponse({'status': 'Failed', 'message': 'description attribute is required'}, status=400)
+        
+        if not imageUrl:
+          return JsonResponse({'status': 'Failed', 'message': 'imageUrl attribute is required'}, status=400)
+        
+        else:
+          
+          club_ref.document(clubID).update({
+             "clubName": clubName,
+             "description": description,
+             "imageUrl": imageUrl,
+          })
+          
+          user_ref.document(inputID).collection('myClubs').document(clubID).update({
+             "clubName": clubName,
+             "description": description,
+             "imageUrl": imageUrl
+          })
+
+          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
