@@ -202,6 +202,7 @@ def get_club_post(request):
         clubPic = data.get('clubPic')
         description = data.get('description')
         imageUrl = data.get('imageUrl')
+        interest = data.get('interest')
 
         if not clubID:
           return JsonResponse({'message': 'clubID attribute is required'}, status=400)
@@ -221,7 +222,8 @@ def get_club_post(request):
             "deleted": False,
             "clubName": clubName,
             "clubPic": clubPic,
-            "clubID": clubID
+            "clubID": clubID,
+            "interest": interest
           })
           return JsonResponse({'status': 'Success', 'message': 'Post Added Successfully!'}, status=200)
       except Exception as e:
@@ -597,4 +599,4 @@ def put_edit_club(request):
              "imageUrl": imageUrl
           })
 
-          return JsonResponse({'status': 'Success', 'message': 'Joined Club Successfully'}, status=200)
+          return JsonResponse({'status': 'Success', 'message': 'Edited Club Successfully'}, status=200)
