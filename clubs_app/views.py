@@ -259,6 +259,7 @@ def get_club_updates(request):
         options = data.get('options')
         type = data.get('type')
         interests = data.get('interests')
+        pollType = data.get('pollType')
 
         if not clubID:
           return JsonResponse({'message': 'clubID attribute is required'}, status=400)
@@ -284,6 +285,7 @@ def get_club_updates(request):
               "options": options,
               "interests": interests,
               "type": type,
+              "pollType": pollType,
           })
 
           return JsonResponse({'status': 'Success', 'message': 'Update Added Successfully!', 'updateID': updateID}, status=200)
