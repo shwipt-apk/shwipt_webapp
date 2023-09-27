@@ -230,6 +230,63 @@ def get_club_post(request):
         return JsonResponse({'message': str(e)}, status=500)
 
 @csrf_exempt
+def get_club_updates(request):
+    if request.method == 'GET':
+      try:
+        data = json.loads(request.body)
+        clubID = data.get('clubID')
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          clubs = [doc.to_dict() for doc in club_ref.document(clubID).collection('updates').order_by('postTime', direction=firestore.Query.DESCENDING).stream()]
+          return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+    
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        clubID = data.get('clubID')
+        inputID = data.get('inputID')
+        username = data.get('username')
+        displayPic = data.get('displayPic')
+        clubName = data.get('clubName')
+        clubPic = data.get('clubPic')
+        description = data.get('description')
+        imageUrl = data.get('imageUrl')
+        options = data.get('options')
+        type = data.get('type')
+        interests = data.get('interests')
+
+        if not clubID:
+          return JsonResponse({'message': 'clubID attribute is required'}, status=400)
+        
+        else:
+          new_feedCount = len([doc.to_dict() for doc in club_ref.document(clubID).collection('updates').get()])
+          club_ref.document(clubID).collection('updates').document("Updates-"+str(new_feedCount+1)).set({
+            "description": description,
+            "postTime": firestore.SERVER_TIMESTAMP,
+            "uid": inputID,
+            "username": username,
+            "displayPic": displayPic,
+            "likes": 0,
+            "comments": 0,
+            "imageUrl": imageUrl,
+            "postID": "Update-"+str(new_feedCount+1),
+            "deleted": False,
+            "clubName": clubName,
+            "clubPic": clubPic,
+            "clubID": clubID,
+            "options": options,
+            "interests": interests,
+            "type": type,
+          })
+          return JsonResponse({'status': 'Success', 'message': 'Update Added Successfully!'}, status=200)
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)
+
+@csrf_exempt
 def get_club_members(request):
     if request.method == 'GET':
       try:
