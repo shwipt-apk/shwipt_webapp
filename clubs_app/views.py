@@ -225,6 +225,7 @@ def get_club_post(request):
             "clubID": clubID,
             "interest": interest
           })
+
           return JsonResponse({'status': 'Success', 'message': 'Post Added Successfully!'}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
@@ -240,7 +241,7 @@ def get_club_updates(request):
         
         else:
           clubs = [doc.to_dict() for doc in club_ref.document(clubID).collection('updates').order_by('postTime', direction=firestore.Query.DESCENDING).stream()]
-          return JsonResponse({'status': 'Success', 'data': clubs, 'clubs_count': len(clubs)}, status=200)
+          return JsonResponse({'status': 'Success', 'data': clubs, 'updates_count': len(clubs)}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
     
@@ -264,25 +265,28 @@ def get_club_updates(request):
         
         else:
           new_feedCount = len([doc.to_dict() for doc in club_ref.document(clubID).collection('updates').get()])
+          updateID = "Updates-"+str(new_feedCount+1)
+
           club_ref.document(clubID).collection('updates').document("Updates-"+str(new_feedCount+1)).set({
-            "description": description,
-            "postTime": firestore.SERVER_TIMESTAMP,
-            "uid": inputID,
-            "username": username,
-            "displayPic": displayPic,
-            "likes": 0,
-            "comments": 0,
-            "imageUrl": imageUrl,
-            "postID": "Update-"+str(new_feedCount+1),
-            "deleted": False,
-            "clubName": clubName,
-            "clubPic": clubPic,
-            "clubID": clubID,
-            "options": options,
-            "interests": interests,
-            "type": type,
+              "description": description,
+              "postTime": firestore.SERVER_TIMESTAMP,
+              "uid": inputID,
+              "username": username,
+              "displayPic": displayPic,
+              "likes": 0,
+              "comments": 0,
+              "imageUrl": imageUrl,
+              "postID": "Update-"+str(new_feedCount+1),
+              "deleted": False,
+              "clubName": clubName,
+              "clubPic": clubPic,
+              "clubID": clubID,
+              "options": options,
+              "interests": interests,
+              "type": type,
           })
-          return JsonResponse({'status': 'Success', 'message': 'Update Added Successfully!'}, status=200)
+
+          return JsonResponse({'status': 'Success', 'message': 'Update Added Successfully!', 'updateID': updateID}, status=200)
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
 
