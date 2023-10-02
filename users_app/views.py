@@ -813,3 +813,45 @@ def get_friends(request):
       
       except Exception as e:
         return JsonResponse({'message': str(e)}, status=500)
+      
+@csrf_exempt
+def post_user_personality(request):
+    if request.method == 'POST':
+      try:
+        data = json.loads(request.body)
+        answers = data.get('answers')
+        count_of_E = answers.count('E')
+        count_of_I = answers.count('I')
+        count_of_S = answers.count('S')
+        count_of_N = answers.count('N')
+        count_of_J = answers.count('J')
+        count_of_P = answers.count('P')
+        count_of_T = answers.count('T')
+        count_of_F = answers.count('F')
+
+        if count_of_E > count_of_I:
+          highest_count_EI = 'E'
+        else:
+          highest_count_EI = 'I'
+
+        if count_of_S > count_of_N:
+          highest_count_SN = 'S'
+        else:
+          highest_count_SN = 'N'
+
+        if count_of_J > count_of_P:
+          highest_count_JP = 'J'
+        else:
+          highest_count_JP = 'P'
+
+        if count_of_T > count_of_F:
+          highest_count_TF = 'T'
+        else:
+          highest_count_TF = 'F'
+
+        result = highest_count_EI + highest_count_SN + highest_count_JP + highest_count_TF
+
+        return JsonResponse({'message': 'Success', 'personality_type': result})
+          
+      except Exception as e:
+        return JsonResponse({'message': str(e)}, status=500)

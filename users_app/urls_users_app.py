@@ -24,4 +24,5 @@ urlpatterns = [
     path('email_exists/', views.get_email_existence),
     path('username_exists/', views.get_username_existence),
     path('phone_exists/', views.get_phone_existence),
+    path('personality_test/', views.post_user_personality),
 ]
